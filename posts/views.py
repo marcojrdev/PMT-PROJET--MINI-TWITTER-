@@ -7,6 +7,8 @@ from .models import Post, Like
 from .serializers import PostSerializer
 from django.shortcuts import get_object_or_404
 
+from rest_framework import generics, permissions
+
 class PostViewSet(viewsets.ModelViewSet):
     queryset = Post.objects.all().order_by('-created_at')
     serializer_class = PostSerializer
@@ -28,3 +30,12 @@ class LikeAPIView(APIView):
             like.delete()
             return Response({'status': 'Post descurtido'}, status=status.HTTP_200_OK)
         return Response({'status': 'Post curtido'}, status=status.HTTP_201_CREATED)
+    
+class FeedView(generics.ListAPIView):
+    serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        follows = user.following.values_list('following_id', flat=True)
+        return Post.objects.filter(author_id__in=follows).order_by('-created_at')
